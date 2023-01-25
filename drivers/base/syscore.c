@@ -42,22 +42,22 @@ EXPORT_SYMBOL_GPL(unregister_syscore_ops);
 /**
  * syscore_suspend - Execute all the registered system core suspend callbacks.
  *
- * This function is executed with one CPU on-line and disabled interrupts.
+ * This function is executed with one CPU on-line
  */
 int syscore_suspend(void)
 {
 	struct syscore_ops *ops;
 	int ret = 0;
 
+	local_irq_disable();
 	trace_suspend_resume(TPS("syscore_suspend"), 0, true);
 	pm_pr_dbg("Checking wakeup interrupts\n");
 
 	/* Return error code if there are any wakeup interrupts pending. */
-	if (pm_wakeup_pending())
-		return -EBUSY;
-
-	WARN_ONCE(!irqs_disabled(),
-		"Interrupts enabled before system core suspend.\n");
+	if (pm_wakeup_pending()) {
+		ret = -EBUSY;
+		goto exit;
+	}
 
 	list_for_each_entry_reverse(ops, &syscore_ops_list, node)
 		if (ops->suspend) {
@@ -65,12 +65,13 @@ int syscore_suspend(void)
 			ret = ops->suspend();
 			if (ret)
 				goto err_out;
-			WARN_ONCE(!irqs_disabled(),
-				"Interrupts enabled after %pS\n", ops->suspend);
 		}
 
 	trace_suspend_resume(TPS("syscore_suspend"), 0, false);
-	return 0;
+
+exit:
+	local_irq_enable();
+	return ret;
 
  err_out:
 	pr_err("PM: System core suspend callback %pS failed.\n", ops->suspend);
@@ -79,6 +80,7 @@ int syscore_suspend(void)
 		if (ops->resume)
 			ops->resume();
 
+	local_irq_enable();
 	return ret;
 }
 EXPORT_SYMBOL_GPL(syscore_suspend);
@@ -86,15 +88,14 @@ EXPORT_SYMBOL_GPL(syscore_suspend);
 /**
  * syscore_resume - Execute all the registered system core resume callbacks.
  *
- * This function is executed with one CPU on-line and disabled interrupts.
+ * This function is executed with one CPU on-line
  */
 void syscore_resume(void)
 {
 	struct syscore_ops *ops;
 
+	local_irq_disable();
 	trace_suspend_resume(TPS("syscore_resume"), 0, true);
-	WARN_ONCE(!irqs_disabled(),
-		"Interrupts enabled before system core resume.\n");
 
 	list_for_each_entry(ops, &syscore_ops_list, node)
 		if (ops->resume) {
@@ -104,6 +105,7 @@ void syscore_resume(void)
 				"Interrupts enabled after %pS\n", ops->resume);
 		}
 	trace_suspend_resume(TPS("syscore_resume"), 0, false);
+	local_irq_enable();
 }
 EXPORT_SYMBOL_GPL(syscore_resume);
 #endif /* CONFIG_PM_SLEEP */
