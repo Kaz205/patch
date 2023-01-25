@@ -265,6 +265,7 @@ static u64 notrace suspended_sched_clock_read(void)
 int sched_clock_suspend(void)
 {
 	struct clock_read_data *rd = &cd.read_data[0];
+	pr_info("sched_clock_suspend");
 
 	update_sched_clock();
 	hrtimer_cancel(&sched_clock_timer);
@@ -276,6 +277,7 @@ int sched_clock_suspend(void)
 void sched_clock_resume(void)
 {
 	struct clock_read_data *rd = &cd.read_data[0];
+	pr_info("sched_clock_resume");
 
 	rd->epoch_cyc = cd.actual_read_sched_clock();
 	hrtimer_start(&sched_clock_timer, cd.wrap_kt, HRTIMER_MODE_REL_HARD);
