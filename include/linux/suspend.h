@@ -573,9 +573,9 @@ static inline int pm_dyn_debug_messages_on(void)
 #include <linux/printk.h>
 
 #define __pm_pr_dbg(fmt, ...) \
-	no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
+	no_printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
 #define __pm_deferred_pr_dbg(fmt, ...) \
-	no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
+	no_printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
 #endif
 
 /**
