@@ -397,44 +397,52 @@ void __weak arch_suspend_enable_irqs(void)
 static int suspend_enter(suspend_state_t state, bool *wakeup)
 {
 	int error;
+	pr_info("BBBB: suspend_enter");
 
 	error = platform_suspend_prepare(state);
-	if (error)
+	if (error) {
+		pr_info("AAAA: platform_suspend_prepare");
 		goto Platform_finish;
+	}
 
 	error = dpm_suspend_late(PMSG_SUSPEND);
 	if (error) {
-		pr_err("late suspend of devices failed\n");
+		pr_err("AAAA: late suspend of devices failed\n");
 		goto Platform_finish;
 	}
 	error = platform_suspend_prepare_late(state);
 	if (error) {
-		pr_err("platform_suspend_prepare_late\n");
+		pr_err("AAAA: platform_suspend_prepare_late\n");
 		goto Devices_early_resume;
 	}
 
 	error = dpm_suspend_noirq(PMSG_SUSPEND);
 	if (error) {
-		pr_err("noirq suspend of devices failed\n");
+		pr_err("AAAA: noirq suspend of devices failed\n");
 		goto Platform_early_resume;
 	}
 	error = platform_suspend_prepare_noirq(state);
 	if (error) {
-		pr_err("platform_suspend_prepare_noirq\n");
+		pr_err("AAAA: platform_suspend_prepare_noirq\n");
 		goto Platform_wake;
 	}
 
-	if (suspend_test(TEST_PLATFORM))
+	if (suspend_test(TEST_PLATFORM)) {
+		pr_info("AAAA: suspend_test test_platofmr");
 		goto Platform_wake;
+	}
 
 	if (state == PM_SUSPEND_TO_IDLE) {
+		pr_info("AAAA: PM_SUSPEND_TO_IDLE");
 		s2idle_loop();
 		goto Platform_wake;
 	}
 
 	error = pm_sleep_disable_secondary_cpus();
-	if (error || suspend_test(TEST_CPUS))
+	if (error || suspend_test(TEST_CPUS)) {
+		pr_info("error suspend_teset test cpus");
 		goto Enable_cpus;
+	}
 
 	arch_suspend_disable_irqs();
 	BUG_ON(!irqs_disabled());
@@ -488,6 +496,7 @@ int suspend_devices_and_enter(suspend_state_t state)
 {
 	int error;
 	bool wakeup = false;
+	pr_info("BBBB: suspend_devices_and_enter");
 
 	if (!sleep_state_supported(state)) {
 		pr_info("AAAA: sleep_state_supported");
