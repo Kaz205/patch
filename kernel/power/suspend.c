@@ -408,8 +408,10 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 		goto Platform_finish;
 	}
 	error = platform_suspend_prepare_late(state);
-	if (error)
+	if (error) {
+		pr_err("platform_suspend_prepare_late\n");
 		goto Devices_early_resume;
+	}
 
 	error = dpm_suspend_noirq(PMSG_SUSPEND);
 	if (error) {
@@ -417,8 +419,10 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 		goto Platform_early_resume;
 	}
 	error = platform_suspend_prepare_noirq(state);
-	if (error)
+	if (error) {
+		pr_err("platform_suspend_prepare_noirq\n");
 		goto Platform_wake;
+	}
 
 	if (suspend_test(TEST_PLATFORM))
 		goto Platform_wake;
@@ -438,6 +442,7 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	system_state = SYSTEM_SUSPEND;
 
 	error = syscore_suspend();
+	pr_info("AAAA: syscore_suspend %s, error ? fail : success");
 	if (!error) {
 		*wakeup = pm_wakeup_pending();
 		if (!(suspend_test(TEST_CORE) || *wakeup)) {
@@ -484,8 +489,10 @@ int suspend_devices_and_enter(suspend_state_t state)
 	int error;
 	bool wakeup = false;
 
-	if (!sleep_state_supported(state))
+	if (!sleep_state_supported(state)) {
+		pr_info("AAAA: sleep_state_supported");
 		return -ENOSYS;
+	}
 
 	pm_suspend_target_state = state;
 
@@ -493,8 +500,10 @@ int suspend_devices_and_enter(suspend_state_t state)
 		pm_set_suspend_no_platform();
 
 	error = platform_suspend_begin(state);
-	if (error)
+	if (error) {
+		pr_info("AAAA: platform_suspend_begin");
 		goto Close;
+	}
 
 	suspend_console();
 	suspend_test_start();
@@ -504,8 +513,10 @@ int suspend_devices_and_enter(suspend_state_t state)
 		goto Recover_platform;
 	}
 	suspend_test_finish("suspend devices");
-	if (suspend_test(TEST_DEVICES))
+	if (suspend_test(TEST_DEVICES)) {
+		pr_info("AAAA: suspend test");
 		goto Recover_platform;
+	}
 
 	do {
 		error = suspend_enter(state, &wakeup);
@@ -563,10 +574,13 @@ static int enter_state(suspend_state_t state)
 		}
 #endif
 	} else if (!valid_state(state)) {
+		pr_info("valid_state");
 		return -EINVAL;
 	}
-	if (!mutex_trylock(&system_transition_mutex))
+	if (!mutex_trylock(&system_transition_mutex)) {
+		pr_info("system_transition_mutex");
 		return -EBUSY;
+	}
 
 	if (state == PM_SUSPEND_TO_IDLE)
 		s2idle_begin();
@@ -580,14 +594,18 @@ static int enter_state(suspend_state_t state)
 	pm_pr_dbg("Preparing system for sleep (%s)\n", mem_sleep_labels[state]);
 	pm_suspend_clear_flags();
 	error = suspend_prepare(state);
-	if (error)
+	if (error) {
+		pr_info("AAAA: suspend_prepare");
 		goto Unlock;
+	}
 
-	if (suspend_test(TEST_FREEZER))
+	if (suspend_test(TEST_FREEZER)) {
+		pr_info("AAAA: suspend_test 2");
 		goto Finish;
+	}
 
 	trace_suspend_resume(TPS("suspend_enter"), state, false);
-	pm_pr_dbg("Suspending system (%s)\n", mem_sleep_labels[state]);
+	pr_info("Suspending system (%s)\n", mem_sleep_labels[state]);
 	pm_restrict_gfp_mask();
 	error = suspend_devices_and_enter(state);
 	pm_restore_gfp_mask();
@@ -612,8 +630,10 @@ int pm_suspend(suspend_state_t state)
 {
 	int error;
 
-	if (state <= PM_SUSPEND_ON || state >= PM_SUSPEND_MAX)
+	if (state <= PM_SUSPEND_ON || state >= PM_SUSPEND_MAX) {
+		pr_info("SUSPEND FAIL");
 		return -EINVAL;
+	}
 
 	pr_info("suspend entry (%s)\n", mem_sleep_labels[state]);
 	error = enter_state(state);

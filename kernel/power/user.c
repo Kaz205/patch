@@ -386,6 +386,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
 	case SNAPSHOT_S2RAM:
 		if (!data->frozen) {
 			error = -EPERM;
+			pr_info("AAAA: SNAPSHOT_S2RAM FAIL");
 			break;
 		}
 		/*
@@ -393,6 +394,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
 		 * PM_HIBERNATION_PREPARE
 		 */
 		error = suspend_devices_and_enter(PM_SUSPEND_MEM);
+		pr_info("AAAA: SNAPSHOT_S2RAM SUCCESS");
 		data->ready = false;
 		break;
 
