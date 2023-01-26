@@ -188,6 +188,7 @@ int cpuidle_enter_s2idle(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	 */
 	index = find_deepest_state(drv, dev, U64_MAX, 0, true);
 	if (index > 0) {
+		pr_info("cpuidle_enter_s2idle");
 		enter_s2idle_proper(drv, dev, index);
 		local_irq_enable();
 	}
