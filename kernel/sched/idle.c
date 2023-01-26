@@ -180,6 +180,7 @@ static void cpuidle_idle_call(void)
 	}
 
 	if (cpuidle_not_available(drv, dev)) {
+		pr_info("cpuidle_not_available");
 		tick_nohz_idle_stop_tick();
 
 		default_idle_call();
