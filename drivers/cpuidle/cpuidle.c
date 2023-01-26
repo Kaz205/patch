@@ -145,6 +145,7 @@ static void enter_s2idle_proper(struct cpuidle_driver *drv,
 	time_start = ns_to_ktime(local_clock());
 
 	tick_freeze();
+	pr_info("AAAA: Tick freeze");
 	/*
 	 * The state used here cannot be a "coupled" one, because the "coupled"
 	 * cpuidle mechanism enables interrupts and doing that with timekeeping
@@ -159,6 +160,7 @@ static void enter_s2idle_proper(struct cpuidle_driver *drv,
 	if (!(target_state->flags & CPUIDLE_FLAG_RCU_IDLE))
 		ct_idle_exit();
 	tick_unfreeze();
+	pr_info("AAAA: Tick unfreeze");
 	start_critical_timings();
 
 	time_end = ns_to_ktime(local_clock());
