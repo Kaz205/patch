@@ -126,12 +126,12 @@ void __cpuidle default_idle_call(void)
 }
 
 static int call_cpuidle_s2idle(struct cpuidle_driver *drv,
-			       struct cpuidle_device *dev)
+			       struct cpuidle_device *dev, bool cpuidle_is_available)
 {
 	if (current_clr_polling_and_test())
 		return -EBUSY;
 
-	return cpuidle_enter_s2idle(drv, dev);
+	return cpuidle_enter_s2idle(drv, dev, cpuidle_is_available);
 }
 
 static int call_cpuidle(struct cpuidle_driver *drv, struct cpuidle_device *dev,
@@ -179,13 +179,6 @@ static void cpuidle_idle_call(void)
 		return;
 	}
 
-	if (cpuidle_not_available(drv, dev)) {
-		tick_nohz_idle_stop_tick();
-
-		default_idle_call();
-		goto exit_idle;
-	}
-
 	/*
 	 * Suspend-to-idle ("s2idle") is a system state in which all user space
 	 * has been frozen, all I/O devices have been suspended and the only
@@ -200,9 +193,8 @@ static void cpuidle_idle_call(void)
 		u64 max_latency_ns;
 
 		if (idle_should_enter_s2idle()) {
-
-			entered_state = call_cpuidle_s2idle(drv, dev);
-			if (entered_state > 0)
+			entered_state = call_cpuidle_s2idle(drv, dev, !cpuidle_not_available(drv, dev));
+			if (!entered_state)
 				goto exit_idle;
 
 			max_latency_ns = U64_MAX;
@@ -216,6 +208,13 @@ static void cpuidle_idle_call(void)
 		call_cpuidle(drv, dev, next_state);
 	} else {
 		bool stop_tick = true;
+
+		if (cpuidle_not_available(drv, dev)) {
+			tick_nohz_idle_stop_tick();
+
+			default_idle_call();
+			goto exit_idle;
+		}
 
 		/*
 		 * Ask the cpuidle framework to choose a convenient idle state.

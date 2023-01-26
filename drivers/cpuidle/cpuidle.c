@@ -54,6 +54,8 @@ bool cpuidle_not_available(struct cpuidle_driver *drv,
 	return off || !initialized || !drv || !dev || !dev->enabled;
 }
 
+void __weak cpu_do_idle(void) { }
+
 /**
  * cpuidle_play_dead - cpu off-lining
  *
@@ -153,7 +155,10 @@ static void enter_s2idle_proper(struct cpuidle_driver *drv,
 	stop_critical_timings();
 	if (!(target_state->flags & CPUIDLE_FLAG_RCU_IDLE))
 		ct_idle_enter();
-	target_state->enter_s2idle(dev, drv, index);
+	if (index != -1)
+		target_state->enter_s2idle(dev, drv, index);
+	else
+		cpu_do_idle();
 	if (WARN_ON_ONCE(!irqs_disabled()))
 		local_irq_disable();
 	if (!(target_state->flags & CPUIDLE_FLAG_RCU_IDLE))
@@ -175,20 +180,24 @@ static void enter_s2idle_proper(struct cpuidle_driver *drv,
  * If there are states with the ->enter_s2idle callback, find the deepest of
  * them and enter it with frozen tick.
  */
-int cpuidle_enter_s2idle(struct cpuidle_driver *drv, struct cpuidle_device *dev)
+int cpuidle_enter_s2idle(struct cpuidle_driver *drv, struct cpuidle_device *dev, bool cpuidle_is_available)
 {
-	int index;
+	int index = -1;
 
 	/*
 	 * Find the deepest state with ->enter_s2idle present, which guarantees
 	 * that interrupts won't be enabled when it exits and allows the tick to
 	 * be frozen safely.
 	 */
-	index = find_deepest_state(drv, dev, U64_MAX, 0, true);
-	if (index > 0) {
+	if (cpuidle_is_available) {
+		index = find_deepest_state(drv, dev, U64_MAX, 0, true);
+		if (index > 0)
+			enter_s2idle_proper(drv, dev, index);
+	} else {
 		enter_s2idle_proper(drv, dev, index);
-		local_irq_enable();
 	}
+	local_irq_enable();
+
 	return index;
 }
 #endif /* CONFIG_SUSPEND */
